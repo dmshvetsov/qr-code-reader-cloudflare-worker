@@ -87,6 +87,9 @@ export class UrlQrCodeRead extends OpenAPIRoute {
       }
 
       const qrCodeParsed = qr(img.data, img.width, img.height);
+      if (!qrCodeParsed) {
+        return { success: false, error: err.QR_PARSE_ERROR };
+      }
 
       return {
         success: true,
