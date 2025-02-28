@@ -42,6 +42,9 @@ export class UrlQrCodeRead extends OpenAPIRoute {
           },
         },
       },
+      "401": {
+        description: "Unauthorized",
+      },
       "400": {
         description: "Input error",
         content: {
@@ -71,7 +74,7 @@ export class UrlQrCodeRead extends OpenAPIRoute {
     },
   };
 
-  async handle(ctx: Context<Env>) {
+  async handle(ctx: Context) {
     // Get validated data
     const req = await this.getValidatedData<typeof this.schema>();
 

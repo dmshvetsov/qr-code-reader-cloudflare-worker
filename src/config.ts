@@ -4,4 +4,4 @@ export const IMAGE_MAX_FILE_SIZE = 12 * 1024 * 1024;
 export const SERVER_TIMEOUT = 10_000;
 
 /** worker bindings */
-export type Env = {};
+export type Env = { AUTH_TOKEN: string };
