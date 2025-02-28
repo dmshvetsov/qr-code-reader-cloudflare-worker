@@ -28,7 +28,7 @@ export class UrlQrCodeRead extends OpenAPIRoute {
     },
     responses: {
       "200": {
-        description: "Returns content of a QR code from the URL",
+        description: "Returns content of the QR code from the URL",
         content: {
           "application/json": {
             schema: z.object({
