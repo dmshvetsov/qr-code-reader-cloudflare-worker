@@ -1,5 +1,4 @@
 import { Buffer } from "node:buffer";
-import { HTTPException } from "hono/http-exception";
 import { Str, Num, Bool, OpenAPIRoute } from "chanfana";
 import { z } from "zod";
 import qr from "jsqr";
@@ -7,7 +6,8 @@ import jpeg from "jpeg-js";
 import png from "upng-js";
 import { logger } from "logger";
 import { CODE as errors } from "errors";
-import { IMAGE_MAX_FILE_SIZE } from "config";
+import { Env, IMAGE_MAX_FILE_SIZE } from "config";
+import { Context } from "hono";
 
 const readFromUrl = z.object({
   url: Str().url(),
@@ -71,7 +71,7 @@ export class UrlQrCodeRead extends OpenAPIRoute {
     },
   };
 
-  async handle(c) {
+  async handle(ctx: Context<Env>) {
     // Get validated data
     const req = await this.getValidatedData<typeof this.schema>();
 
@@ -94,13 +94,10 @@ export class UrlQrCodeRead extends OpenAPIRoute {
       log.warn(
         `image size ${contentLength} exceeds limit ${IMAGE_MAX_FILE_SIZE} ${req.body.url}`,
       );
-      throw new HTTPException(400, {
-        res: new Response(
-          JSON.stringify({
-            success: false,
-            error: errors.IMAGE_EXCEEDS_SIZE_LIMIT,
-          }),
-        ),
+      ctx.status(400);
+      return ctx.json({
+        success: false,
+        error: errors.IMAGE_EXCEEDS_SIZE_LIMIT,
       });
     }
 
@@ -110,13 +107,10 @@ export class UrlQrCodeRead extends OpenAPIRoute {
       const img = await getImage(buf);
       if (!img) {
         log.warn("unsupported image format " + req.body.url);
-        throw new HTTPException(400, {
-          res: new Response(
-            JSON.stringify({
-              success: false,
-              error: errors.IMAGE_UNSUPPORTED_FORMAT,
-            }),
-          ),
+        ctx.status(400);
+        return ctx.json({
+          success: false,
+          error: errors.IMAGE_UNSUPPORTED_FORMAT,
         });
       }
 
@@ -132,11 +126,11 @@ export class UrlQrCodeRead extends OpenAPIRoute {
         qr: { data: qrCodeParsed.data },
       };
     } catch (err) {
-      log.error("successfully read " + req.body.url);
-      throw new HTTPException(500, {
-        res: new Response(
-          JSON.stringify({ success: false, error: errors.EXCEPTION }),
-        ),
+      log.error(`server error: ${err.message} ${req.body.url}`);
+      ctx.status(500);
+      return ctx.json({
+        success: false,
+        error: errors.EXCEPTION,
       });
     }
   }

@@ -3,10 +3,10 @@ import { Hono } from "hono";
 import { timeout } from "hono/timeout";
 import { UrlQrCodeRead } from "endpoints/qr-code-read";
 import { Errors } from "endpoints/errors";
-import { SERVER_TIMEOUT } from "config";
+import { Env, SERVER_TIMEOUT } from "config";
 
 // Start a Hono app
-const app = new Hono();
+const app = new Hono<{ Bindings: Env }>();
 
 app.use(timeout(SERVER_TIMEOUT));
 
