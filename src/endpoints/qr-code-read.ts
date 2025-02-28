@@ -1,12 +1,12 @@
 import { Buffer } from "node:buffer";
 import { HTTPException } from "hono/http-exception";
-import { Str, Bool, OpenAPIRoute } from "chanfana";
+import { Str, Num, Bool, OpenAPIRoute } from "chanfana";
 import { z } from "zod";
 import qr from "jsqr";
 import jpeg from "jpeg-js";
 import png from "upng-js";
 import { logger } from "logger";
-import { CODE as err } from "errors";
+import { CODE as errors } from "errors";
 
 const readFromUrl = z.object({
   url: Str().url(),
@@ -26,19 +26,6 @@ export class UrlQrCodeRead extends OpenAPIRoute {
       },
     },
     responses: {
-      "400": {
-        description: "Returns content of a QR code from the URL",
-        content: {
-          "application/json": {
-            schema: z.object({
-              series: z.object({
-                success: z.literal(false),
-                error: Str(),
-              }),
-            }),
-          },
-        },
-      },
       "200": {
         description: "Returns content of a QR code from the URL",
         content: {
@@ -47,8 +34,34 @@ export class UrlQrCodeRead extends OpenAPIRoute {
               series: z.object({
                 success: Bool(),
                 qr: z.object({
-                  data: Str(),
+                  data: Num(),
                 }),
+              }),
+            }),
+          },
+        },
+      },
+      "400": {
+        description: "Input error",
+        content: {
+          "application/json": {
+            schema: z.object({
+              series: z.object({
+                success: z.literal(false),
+                error: Num(),
+              }),
+            }),
+          },
+        },
+      },
+      "500": {
+        description: "Server error",
+        content: {
+          "application/json": {
+            schema: z.object({
+              series: z.object({
+                success: z.literal(false),
+                error: Num(),
               }),
             }),
           },
@@ -69,18 +82,19 @@ export class UrlQrCodeRead extends OpenAPIRoute {
       "fetch " + req.body.url + " request response " + imageFetch.status,
     );
     if (!imageFetch.ok) {
-      return { success: false, error: err.IMAGE_UNAVAILABLE };
+      return { success: false, error: errors.IMAGE_UNAVAILABLE };
     }
 
     try {
       const buf = await imageFetch.arrayBuffer();
       const img = await getImage(buf);
       if (!img) {
+        log.warn("unsupported image format " + req.body.url);
         throw new HTTPException(400, {
           res: new Response(
             JSON.stringify({
               success: false,
-              error: err.UNSUPPORTED_IMAGE_FORMAT,
+              error: errors.UNSUPPORTED_IMAGE_FORMAT,
             }),
           ),
         });
@@ -88,17 +102,20 @@ export class UrlQrCodeRead extends OpenAPIRoute {
 
       const qrCodeParsed = qr(img.data, img.width, img.height);
       if (!qrCodeParsed) {
-        return { success: false, error: err.QR_PARSE_ERROR };
+        log.warn("failed to parse " + req.body.url);
+        return { success: false, error: errors.QR_PARSE_ERROR };
       }
 
+      log.info("successfully read " + req.body.url);
       return {
         success: true,
         qr: { data: qrCodeParsed.data },
       };
     } catch (err) {
-      throw new HTTPException(400, {
+      log.error("successfully read " + req.body.url);
+      throw new HTTPException(500, {
         res: new Response(
-          JSON.stringify({ success: false, error: err.message }),
+          JSON.stringify({ success: false, error: errors.EXCEPTION }),
         ),
       });
     }
