@@ -120,7 +120,8 @@ export class UrlQrCodeRead extends OpenAPIRoute {
       const qrCodeParsed = qr(img.data, img.width, img.height);
       if (!qrCodeParsed) {
         log.warn("failed to parse " + req.body.url);
-        return { success: false, error: errors.QR_PARSE_ERROR };
+        ctx.status(400);
+        return ctx.json({ success: false, error: errors.QR_PARSE_ERROR });
       }
 
       log.info("successfully read " + req.body.url);
