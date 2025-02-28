@@ -7,6 +7,7 @@ import jpeg from "jpeg-js";
 import png from "upng-js";
 import { logger } from "logger";
 import { CODE as errors } from "errors";
+import { IMAGE_MAX_FILE_SIZE } from "config";
 
 const readFromUrl = z.object({
   url: Str().url(),
@@ -74,8 +75,8 @@ export class UrlQrCodeRead extends OpenAPIRoute {
     // Get validated data
     const req = await this.getValidatedData<typeof this.schema>();
 
-    const log = logger("read QR code");
-    log.info("[read QR code] request " + req.body.url);
+    const log = logger("qr-code-reader");
+    log.info("request " + req.body.url);
 
     const imageFetch = await fetch(req.body.url);
     log.info(
@@ -85,7 +86,26 @@ export class UrlQrCodeRead extends OpenAPIRoute {
       return { success: false, error: errors.IMAGE_UNAVAILABLE };
     }
 
+    const contentLength = parseInt(
+      imageFetch.headers.get("Content-Length"),
+      10,
+    );
+    if (contentLength > IMAGE_MAX_FILE_SIZE) {
+      log.warn(
+        `image size ${contentLength} exceeds limit ${IMAGE_MAX_FILE_SIZE} ${req.body.url}`,
+      );
+      throw new HTTPException(400, {
+        res: new Response(
+          JSON.stringify({
+            success: false,
+            error: errors.IMAGE_EXCEEDS_SIZE_LIMIT,
+          }),
+        ),
+      });
+    }
+
     try {
+      log.info("fetch img body " + contentLength + " bytes " + req.body.url);
       const buf = await imageFetch.arrayBuffer();
       const img = await getImage(buf);
       if (!img) {
@@ -94,7 +114,7 @@ export class UrlQrCodeRead extends OpenAPIRoute {
           res: new Response(
             JSON.stringify({
               success: false,
-              error: errors.UNSUPPORTED_IMAGE_FORMAT,
+              error: errors.IMAGE_UNSUPPORTED_FORMAT,
             }),
           ),
         });
