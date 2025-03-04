@@ -5,7 +5,7 @@ import qr from "jsqr";
 import jpeg from "jpeg-js";
 import png from "upng-js";
 import { logger } from "logger";
-import { CODE as errors } from "errors";
+import { CODE as errors, DESCRIPTION as errMessages } from "../errors";
 import { Env, IMAGE_MAX_FILE_SIZE } from "config";
 import { Context } from "hono";
 
@@ -49,7 +49,10 @@ export class UrlQrCodeRead extends OpenAPIRoute {
           "application/json": {
             schema: z.object({
               success: z.literal(false),
-              error: Num(),
+              error: z.object({
+                code: Num(),
+                message: Str(),
+              }),
             }),
           },
         },
@@ -60,7 +63,10 @@ export class UrlQrCodeRead extends OpenAPIRoute {
           "application/json": {
             schema: z.object({
               success: z.literal(false),
-              error: Num(),
+              error: z.object({
+                code: Num(),
+                message: Str(),
+              }),
             }),
           },
         },
@@ -80,7 +86,13 @@ export class UrlQrCodeRead extends OpenAPIRoute {
       "fetch " + req.body.url + " request response " + imageFetch.status,
     );
     if (!imageFetch.ok) {
-      return { success: false, error: errors.IMAGE_UNAVAILABLE };
+      return {
+        success: false,
+        error: {
+          code: errors.IMAGE_UNAVAILABLE,
+          message: errMessages[errors.IMAGE_UNAVAILABLE],
+        },
+      };
     }
 
     const contentLength = parseInt(
@@ -94,7 +106,10 @@ export class UrlQrCodeRead extends OpenAPIRoute {
       ctx.status(400);
       return ctx.json({
         success: false,
-        error: errors.IMAGE_EXCEEDS_SIZE_LIMIT,
+        error: {
+          code: errors.IMAGE_EXCEEDS_SIZE_LIMIT,
+          message: errMessages[errors.IMAGE_EXCEEDS_SIZE_LIMIT],
+        },
       });
     }
 
@@ -107,7 +122,10 @@ export class UrlQrCodeRead extends OpenAPIRoute {
         ctx.status(400);
         return ctx.json({
           success: false,
-          error: errors.IMAGE_UNSUPPORTED_FORMAT,
+          error: {
+            code: errors.IMAGE_UNSUPPORTED_FORMAT,
+            message: errMessages[errors.IMAGE_UNSUPPORTED_FORMAT],
+          },
         });
       }
 
@@ -115,7 +133,13 @@ export class UrlQrCodeRead extends OpenAPIRoute {
       if (!qrCodeParsed) {
         log.warn("failed to parse " + req.body.url);
         ctx.status(400);
-        return ctx.json({ success: false, error: errors.QR_PARSE_ERROR });
+        return ctx.json({
+          success: false,
+          error: {
+            code: errors.QR_PARSE_ERROR,
+            message: errMessages[errors.QR_PARSE_ERROR],
+          },
+        });
       }
 
       log.info("successfully read " + req.body.url);
@@ -128,7 +152,10 @@ export class UrlQrCodeRead extends OpenAPIRoute {
       ctx.status(500);
       return ctx.json({
         success: false,
-        error: errors.EXCEPTION,
+        error: {
+          code: errors.EXCEPTION,
+          errMessages: errMessages[errors.EXCEPTION],
+        },
       });
     }
   }
@@ -145,7 +172,6 @@ async function getImage(buf: ArrayBuffer): Promise<ImgParsed | null> {
   if (fileFormatSlice === "ffd8ff") {
     // jpeg
     const img = jpeg.decode(buf);
-    console.log("jped", img);
     return {
       data: new Uint8ClampedArray(img.data),
       width: img.width,
