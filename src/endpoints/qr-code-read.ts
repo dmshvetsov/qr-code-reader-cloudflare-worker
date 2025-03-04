@@ -32,11 +32,9 @@ export class UrlQrCodeRead extends OpenAPIRoute {
         content: {
           "application/json": {
             schema: z.object({
-              series: z.object({
-                success: Bool(),
-                qr: z.object({
-                  data: Num(),
-                }),
+              success: Bool(),
+              qr: z.object({
+                data: Num(),
               }),
             }),
           },
@@ -50,10 +48,8 @@ export class UrlQrCodeRead extends OpenAPIRoute {
         content: {
           "application/json": {
             schema: z.object({
-              series: z.object({
-                success: z.literal(false),
-                error: Num(),
-              }),
+              success: z.literal(false),
+              error: Num(),
             }),
           },
         },
@@ -63,10 +59,8 @@ export class UrlQrCodeRead extends OpenAPIRoute {
         content: {
           "application/json": {
             schema: z.object({
-              series: z.object({
-                success: z.literal(false),
-                error: Num(),
-              }),
+              success: z.literal(false),
+              error: Num(),
             }),
           },
         },
