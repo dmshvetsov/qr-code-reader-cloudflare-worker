@@ -81,22 +81,19 @@ export class UrlQrCodeRead extends OpenAPIRoute {
     const log = logger("qr-code-reader");
     log.info("request " + req.body.url);
 
-    const imageFetch = await fetch(req.body.url, {
-      cf: {
-        image: { width: 800, height: 800, quality: 80, fit: "scale-down" },
-      },
-    });
+    const imageFetch = await fetch(req.body.url);
     log.info(
       "fetch " + req.body.url + " request response " + imageFetch.status,
     );
     if (!imageFetch.ok) {
-      return {
+      ctx.status(400);
+      return ctx.json({
         success: false,
         error: {
           code: errors.IMAGE_UNAVAILABLE,
           message: errMessages[errors.IMAGE_UNAVAILABLE],
         },
-      };
+      });
     }
 
     const contentLength = parseInt(
@@ -118,16 +115,8 @@ export class UrlQrCodeRead extends OpenAPIRoute {
     }
 
     try {
-      log.info(
-        "attempt to fetch original img body " +
-          contentLength +
-          " bytes " +
-          req.body.url,
-      );
+      log.info("fetch img body " + contentLength + " bytes " + req.body.url);
       const buf = await imageFetch.arrayBuffer();
-      log.info(
-        "fetched resized img body " + buf.byteLength + " bytes " + req.body.url,
-      );
       const img = await getImage(buf);
       if (!img) {
         log.warn("unsupported image format " + req.body.url);
