@@ -81,7 +81,11 @@ export class UrlQrCodeRead extends OpenAPIRoute {
     const log = logger("qr-code-reader");
     log.info("request " + req.body.url);
 
-    const imageFetch = await fetch(req.body.url);
+    const imageFetch = await fetch(req.body.url, {
+      cf: {
+        image: { width: 800, height: 800, quality: 80, fit: "scale-down" },
+      },
+    });
     log.info(
       "fetch " + req.body.url + " request response " + imageFetch.status,
     );
@@ -101,7 +105,7 @@ export class UrlQrCodeRead extends OpenAPIRoute {
     );
     if (contentLength > IMAGE_MAX_FILE_SIZE) {
       log.warn(
-        `image size ${contentLength} exceeds limit ${IMAGE_MAX_FILE_SIZE} ${req.body.url}`,
+        `original image size ${contentLength} exceeds limit ${IMAGE_MAX_FILE_SIZE} ${req.body.url}`,
       );
       ctx.status(400);
       return ctx.json({
@@ -114,8 +118,16 @@ export class UrlQrCodeRead extends OpenAPIRoute {
     }
 
     try {
-      log.info("fetch img body " + contentLength + " bytes " + req.body.url);
+      log.info(
+        "attempt to fetch original img body " +
+          contentLength +
+          " bytes " +
+          req.body.url,
+      );
       const buf = await imageFetch.arrayBuffer();
+      log.info(
+        "fetched resized img body " + buf.byteLength + " bytes " + req.body.url,
+      );
       const img = await getImage(buf);
       if (!img) {
         log.warn("unsupported image format " + req.body.url);
